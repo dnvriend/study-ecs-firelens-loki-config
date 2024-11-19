@@ -178,6 +178,67 @@ Labels = "$${LOKI_LABELS}"
 } 
 ```
 
+## A single entry in the Labels
+Alternatively, you can use a single entry in the Labels, but then you need to escape the double dollar sign. So you do not have to replace the whole line with the contents of the environment variable as shown above.
+
+```hcl
+logConfiguration = {
+  logDriver = "awsfirelens"
+  options = {
+    Name       = "loki"
+    Url        = "http://${aws_lb.loki_lb.dns_name}/loki/api/v1/push"
+    Labels     = "{env=\"test_labels\",project_id=\"$${PROJECT_ID}\"}"
+    RemoveKeys = "container_id,ecs_task_arn"
+    LabelKeys  = "container_name,ecs_task_definition,source,ecs_cluster"
+    LineFormat = "key_value"
+  }
+}
+```
+
+the log forwarder:
+
+
+```hcl
+{
+  name  = "fluentbit"
+  image = "grafana/fluent-bit-plugin-loki:2.0.0-amd64"
+  # image        = "grafana/fluent-bit-plugin-loki:2.9.1" # note that it uses different keys for labels
+  essential    = true
+  cpu          = 0
+  mountPoints  = []
+  volumesFrom  = []
+  environment  = []
+  portMappings = []
+  user         = "0"
+
+  environment = [
+    {
+      name  = "PROJECT_ID"
+      value = "543210"
+    },
+  ]
+
+  firelensConfiguration = {
+    type = "fluentbit"
+    options = {
+      "enable-ecs-log-metadata" : "true"
+    }
+  }
+
+  logConfiguration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = aws_cloudwatch_log_group.httpbin_log_group.name
+      awslogs-region        = data.aws_region.current.name
+      awslogs-stream-prefix = "fargate"
+    }
+  }
+}
+```
+
+
+
+
 ## Resources
 
 - https://docs.aws.amazon.com/AmazonECS/latest/developerguide/firelens-taskdef.html

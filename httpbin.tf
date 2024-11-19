@@ -40,7 +40,7 @@ resource "aws_ecs_task_definition" "httpbin" {
         options = {
           Name       = "loki"
           Url        = "http://${aws_lb.loki_lb.dns_name}/loki/api/v1/push"
-          Labels     = "$${LOKI_LABELS}"
+          Labels     = "{env=\"test_labels\",project_id=\"$${PROJECT_ID}\"}"
           RemoveKeys = "container_id,ecs_task_arn"
           LabelKeys  = "container_name,ecs_task_definition,source,ecs_cluster"
           LineFormat = "key_value"
@@ -56,41 +56,8 @@ resource "aws_ecs_task_definition" "httpbin" {
       #   }
       # }
     },
-    {
-      name  = "fluentbit"
-      image = "grafana/fluent-bit-plugin-loki:2.0.0-amd64"
-      # image        = "grafana/fluent-bit-plugin-loki:2.9.1" # note that it uses different keys for labels
-      essential    = true
-      cpu          = 0
-      mountPoints  = []
-      volumesFrom  = []
-      environment  = []
-      portMappings = []
-      user         = "0"
 
-      environment = [
-        {
-          name  = "LOKI_LABELS"
-          value = "{env=\"test_labels\",project_id=\"12345\",job=\"firelens\",region=\"us-east-1\",service=\"firelens\"}"
-        }
-      ]
 
-      firelensConfiguration = {
-        type = "fluentbit"
-        options = {
-          "enable-ecs-log-metadata" : "true"
-        }
-      }
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.httpbin_log_group.name
-          awslogs-region        = data.aws_region.current.name
-          awslogs-stream-prefix = "fargate"
-        }
-      }
-    },
   ])
 }
 
