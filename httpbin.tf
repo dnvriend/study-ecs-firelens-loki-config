@@ -56,8 +56,41 @@ resource "aws_ecs_task_definition" "httpbin" {
       #   }
       # }
     },
+    {
+      name  = "fluentbit"
+      image = "grafana/fluent-bit-plugin-loki:2.0.0-amd64"
+      # image        = "grafana/fluent-bit-plugin-loki:2.9.1" # note that it uses different keys for labels
+      essential    = true
+      cpu          = 0
+      mountPoints  = []
+      volumesFrom  = []
+      environment  = []
+      portMappings = []
+      user         = "0"
 
+      environment = [
+        {
+          name  = "PROJECT_ID"
+          value = "543210"
+        },
+      ]
 
+      firelensConfiguration = {
+        type = "fluentbit"
+        options = {
+          "enable-ecs-log-metadata" : "true"
+        }
+      }
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.httpbin_log_group.name
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "fargate"
+        }
+      }
+    },
   ])
 }
 
